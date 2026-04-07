@@ -62,25 +62,37 @@ app.get("/", (req, res) => {
 });
 
 /* 👤 USER */
-app.get("/create-user", async (req, res) => {
+app.post("/create-user", async (req, res) => {
   try {
-    let user = await User.findOne();
+    const newUser = new User({
+      xp: 0,
+      seviye: 1,
+      görevler: [
+        {
+          title: "Şınav",
+          progress: 0,
+          total: 10,
+        },
+        {
+          title: "Kitap oku",
+          progress: 0,
+          total: 20,
+        },
+      ],
+    });
 
-    if (!user) {
-      user = await User.create({
-        username: "Yusuf",
-        xp: 0,
-        level: 1,
-        tasks: [
-          { title: "Spor yap", completed: false },
-          { title: "Kitap oku", completed: false },
-        ],
-      });
-    }
+    await newUser.save();
 
-    res.json(user);
+    // ✅ FRONTEND’E UYUMLU FORMAT
+    res.json({
+      _id: newUser._id,
+      xp: newUser.xp,
+      level: newUser.seviye,
+      tasks: newUser.görevler,
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "User oluşturulamadı" });
   }
 });
 
@@ -88,7 +100,14 @@ app.get("/create-user", async (req, res) => {
 app.get("/tasks", async (req, res) => {
   try {
     const user = await User.findOne();
-    res.json(user?.tasks || []);
+    res.json(
+  (user?.görevler || []).map((t) => ({
+    _id: t._id,
+    title: t.title,
+    progress: t.progress || t.ilerleme || 0,
+    total: t.total || 10,
+  }))
+);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
