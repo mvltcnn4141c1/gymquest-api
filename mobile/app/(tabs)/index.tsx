@@ -1,174 +1,168 @@
-import { useEffect, useState, useRef } from "react";
-import { View, Text, Button, Pressable, Animated } from "react-native";
-
+import { useEffect, useState } from "react";
+import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 export default function HomeScreen() {
+
+  const API_URL = "https://gymquest-api.onrender.com"; // ✅ BURADA
+
+  console.log("API:", API_URL); // ✅ BURAYA KOY
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [player, setPlayer] = useState<any>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  // Kullanıcıyı oluştur / çek
+ const createUser = async () => {
+  try {
+    const res = await fetch(`${API_URL}/create-user`, {
+      method: "POST",
+    });
 
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+    const data = await res.json();
 
-  // ✅ CANLI API (Render)
-  const API = "https://gymquest-api.onrender.com";
+    console.log("USER:", data); // ✅ BURAYA
 
-  // 🎮 XP ANİMASYON
-  const playXPAnimation = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 1.5,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+    setPlayer(data);
+  } catch (err) {
+    console.log("USER ERROR:", err);
+  }
+};
 
-  // 📋 TASKS ÇEK
-  const fetchTasks = async () => {
-    try {
-      const res = await fetch(API + "/tasks");
-      const data = await res.json();
+  // Görevleri çek
+  const getTasks = async () => {
+  try {
+    const res = await fetch(`${API_URL}/tasks`);
+    const data = await res.json();
+
+    console.log("TASKS:", data); // ✅ BURAYA
+
+    if (Array.isArray(data)) {
       setTasks(data);
-    } catch (err) {
-      console.log("TASK ERROR:", err);
+    } else {
+      setTasks([]);
     }
-  };
-
-  // 👤 PLAYER ÇEK / OLUŞTUR
-  const fetchPlayer = async () => {
+  } catch (err) {
+    console.log("TASK ERROR:", err);
+    setTasks([]);
+  }
+};
+  // Görev ilerlet
+  const progressTask = async (taskId: string) => {
     try {
-      const res = await fetch(API + "/create-user");
-      const data = await res.json();
-      setPlayer(data);
-    } catch (err) {
-      console.log("PLAYER ERROR:", err);
-    }
-  };
-
-  // 🔥 XP EKLE
-  const completeTask = async (task: any) => {
-    try {
-      const res = await fetch(API + "/add-xp", {
+      const res = await fetch(`${API_URL}/progress-task`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ xp: 50 }),
+        body: JSON.stringify({
+          userId: player._id,
+          taskId: taskId,
+        }),
       });
 
       const data = await res.json();
 
-      console.log("XP RESPONSE:", data);
+      // player güncelle
+      setPlayer(data.player);
 
-      // PLAYER GÜNCELLE
-      setPlayer((prev: any) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          xp: data.xp,
-          level: data.level,
-        };
-      });
-
-      // TASK COMPLETE
+      // task güncelle (UI refresh)
       setTasks((prev) =>
         prev.map((t) =>
-          t.title === task.title ? { ...t, completed: true } : t
+          t._id === taskId ? { ...t, progress: data.task.progress } : t
         )
       );
-
-      playXPAnimation();
-
-      // ✅ DOĞRU KEY
-      if (data.leveledUp) {
-        alert("LEVEL UP 🔥");
-      }
-
-      setRefreshKey((prev) => prev + 1);
-
     } catch (err) {
-      console.log("XP ERROR:", err);
+      console.log("PROGRESS ERROR:", err);
     }
   };
 
-  // 🚀 BAŞLANGIÇ
+  // ilk yükleme
   useEffect(() => {
-    fetchTasks();
-    fetchPlayer();
-  }, []);
+  const init = async () => {
+    try {
+      await createUser();
+      await getTasks();
+    } catch (err) {
+      console.log("INIT ERROR:", err);
+    } finally {
+      setLoading(false); // HER DURUMDA ÇALIŞIR
+    }
+  };
+
+  init();
+}, []);
+
+  // loading ekranı
+  if (loading || !player) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+        <Text>Yükleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View key={refreshKey} style={{ marginTop: 50, padding: 20 }}>
+    <View style={styles.container}>
+      {/* PLAYER INFO */}
+      <Text style={styles.title}>Level: {player.level}</Text>
+      <Text>XP: {player.xp}</Text>
 
-      {player && (
-        <>
-          <Text style={{ fontSize: 18 }}>
-            🧑 {player.username} | Level {player.level} | XP {player.xp}
-          </Text>
+      {/* TASK LIST */}
+      {tasks.length === 0 ? (
+        <Text>Görev yok</Text>
+      ) : (
+        tasks.map((task) => (
+          <View key={task._id} style={styles.taskBox}>
+            <Text style={styles.taskTitle}>{task.title}</Text>
+            <Text>
+              {task.progress} / {task.total}
+            </Text>
 
-          {/* XP BAR */}
-          <View
-            style={{
-              height: 10,
-              width: "100%",
-              backgroundColor: "#ddd",
-              borderRadius: 5,
-              marginVertical: 10,
-            }}
-          >
-            <View
-              style={{
-                height: 10,
-                width: `${player.xp % 100}%`,
-                backgroundColor: "#4caf50",
-                borderRadius: 5,
-              }}
-            />
+            <Pressable
+              style={styles.button}
+              onPress={() => progressTask(task._id)}
+            >
+              <Text style={styles.buttonText}>Yap (+)</Text>
+            </Pressable>
           </View>
-
-          {/* ✨ XP ANİMASYON */}
-          <Animated.Text
-            style={{
-              transform: [{ scale: scaleAnim }],
-              fontSize: 18,
-              color: "gold",
-              marginBottom: 10,
-            }}
-          >
-            +XP 🚀
-          </Animated.Text>
-        </>
+        ))
       )}
-
-      <Button
-        title="Yenile"
-        onPress={() => {
-          fetchTasks();
-          fetchPlayer();
-        }}
-      />
-
-      {tasks.map((task, index) => (
-        <Pressable
-          key={index}
-          onPress={() => completeTask(task)}
-          style={{
-            marginTop: 10,
-            padding: 15,
-            backgroundColor: task.completed ? "#ddd" : "#cce5ff",
-            borderRadius: 10,
-          }}
-        >
-          <Text>
-            {task.title} {task.completed ? "✅" : "❌"} (+XP)
-          </Text>
-        </Pressable>
-      ))}
-
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    marginTop: 40,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+  taskBox: {
+    padding: 15,
+    marginTop: 15,
+    backgroundColor: "#eee",
+    borderRadius: 10,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  button: {
+    marginTop: 10,
+    backgroundColor: "black",
+    padding: 10,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: "white",
+    textAlign: "center",
+  },
+});
