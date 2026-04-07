@@ -7,15 +7,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* 🔥 MongoDB bağlantı (Render için) */
+/* 🔥 MongoDB bağlantı */
 if (!process.env.MONGO_URI) {
   console.log("❌ MONGO_URI TANIMLI DEĞİL!");
   process.exit(1);
 }
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB bağlandı 🚀"))
-  .catch(err => {
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB bağlandı 🚀");
+  })
+  .catch((err) => {
     console.log("MongoDB hata:", err);
     process.exit(1);
   });
@@ -26,12 +29,12 @@ const userSchema = new mongoose.Schema({
 
   xp: {
     type: Number,
-    default: 0
+    default: 0,
   },
 
   level: {
     type: Number,
-    default: 1
+    default: 1,
   },
 
   tasks: [
@@ -40,25 +43,25 @@ const userSchema = new mongoose.Schema({
       completed: Boolean,
       progress: {
         type: Number,
-        default: 0
-      }
-    }
+        default: 0,
+      },
+    },
   ],
 
   lastDailyReset: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const User = mongoose.model("User", userSchema);
 
-/* 🚀 TEST ROUTE */
+/* 🚀 TEST */
 app.get("/", (req, res) => {
-  res.send("API ÇALIŞIYOR 🔥");
+  res.send("API çalışıyor 🚀");
 });
 
-/* 👤 USER CREATE */
+/* 👤 USER */
 app.get("/create-user", async (req, res) => {
   try {
     let user = await User.findOne();
@@ -70,8 +73,8 @@ app.get("/create-user", async (req, res) => {
         level: 1,
         tasks: [
           { title: "Spor yap", completed: false },
-          { title: "Kitap oku", completed: false }
-        ]
+          { title: "Kitap oku", completed: false },
+        ],
       });
     }
 
@@ -91,20 +94,12 @@ app.get("/tasks", async (req, res) => {
   }
 });
 
-/* 🔥 XP EKLE */
+/* 🔥 XP */
 app.post("/add-xp", async (req, res) => {
   try {
     const { xp } = req.body;
 
-    if (!xp) {
-      return res.status(400).json({ error: "XP gönderilmedi" });
-    }
-
     let user = await User.findOne();
-
-    if (!user) {
-      return res.status(404).json({ error: "User yok" });
-    }
 
     user.xp += xp;
 
@@ -122,9 +117,8 @@ app.post("/add-xp", async (req, res) => {
     res.json({
       xp: user.xp,
       level: user.level,
-      leveledUp
+      leveledUp,
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

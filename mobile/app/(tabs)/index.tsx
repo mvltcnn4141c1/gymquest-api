@@ -8,7 +8,8 @@ export default function HomeScreen() {
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const API = "https://elidia-unrash-mesmerizedly.ngrok-free.dev";
+  // ✅ CANLI API (Render)
+  const API = "https://gymquest-api.onrender.com";
 
   // 🎮 XP ANİMASYON
   const playXPAnimation = () => {
@@ -26,14 +27,10 @@ export default function HomeScreen() {
     ]).start();
   };
 
+  // 📋 TASKS ÇEK
   const fetchTasks = async () => {
     try {
-      const res = await fetch(API + "/tasks", {
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-        },
-      });
-
+      const res = await fetch(API + "/tasks");
       const data = await res.json();
       setTasks(data);
     } catch (err) {
@@ -41,14 +38,10 @@ export default function HomeScreen() {
     }
   };
 
+  // 👤 PLAYER ÇEK / OLUŞTUR
   const fetchPlayer = async () => {
     try {
-      const res = await fetch(API + "/create-user", {
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-        },
-      });
-
+      const res = await fetch(API + "/create-user");
       const data = await res.json();
       setPlayer(data);
     } catch (err) {
@@ -56,13 +49,13 @@ export default function HomeScreen() {
     }
   };
 
+  // 🔥 XP EKLE
   const completeTask = async (task: any) => {
     try {
       const res = await fetch(API + "/add-xp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({ xp: 50 }),
       });
@@ -71,7 +64,7 @@ export default function HomeScreen() {
 
       console.log("XP RESPONSE:", data);
 
-      // PLAYER UPDATE
+      // PLAYER GÜNCELLE
       setPlayer((prev: any) => {
         if (!prev) return prev;
         return {
@@ -81,7 +74,7 @@ export default function HomeScreen() {
         };
       });
 
-      // TASK COMPLETE (title üzerinden)
+      // TASK COMPLETE
       setTasks((prev) =>
         prev.map((t) =>
           t.title === task.title ? { ...t, completed: true } : t
@@ -90,7 +83,8 @@ export default function HomeScreen() {
 
       playXPAnimation();
 
-      if (data.levelUp) {
+      // ✅ DOĞRU KEY
+      if (data.leveledUp) {
         alert("LEVEL UP 🔥");
       }
 
@@ -101,6 +95,7 @@ export default function HomeScreen() {
     }
   };
 
+  // 🚀 BAŞLANGIÇ
   useEffect(() => {
     fetchTasks();
     fetchPlayer();
