@@ -1,0 +1,52 @@
+Egzersiz
+Agent, uygulamadaki egzersiz kütüphanesini profesyonel seviyeye taşımamız lazım. Senden şunları istiyorum:
+1.	İnternetteki açık kaynaklı (Wger veya benzeri) egzersiz veritabanlarını araştır.
+2.	En az 300-500 farklı egzersiz içeren bir JSON listesi oluştur.
+3.	Bu listede her hareketin; 'Alt Kas Grubu' (Örn: Sadece Göğüs değil, Üst Göğüs), 'Zorluk Derecesi', 'Gereken Ekipman' ve 'Hangi Eklemi Çalıştırdığı' bilgileri olsun.
+4.	Video yerine, her hareket için 3 adımlı çok net metin talimatı hazırla."**
+SINIFLAR CLASLAR
+"Agent, uygulamaya şu 12 ana D&D sınıfını (Barbarian, Fighter, Paladin, Monk, Rogue, Ranger, Wizard, Cleric, Druid, Sorcerer, Warlock, Bard) ekle. Her sınıfın ana niteliğine göre (Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma) antrenmanlardan kazandığı bonus puanları tanımla. Kullanıcı profilini oluştururken bu sınıflardan birini seçsin."
+HEALT UYGULAMASI OPTİMİZE İÇİN ONAY
+İnsanların oturduğu yerden görev tamamlamasını engellemek için Apple Health/Google Fit bağlantısı. Veriler eşleşmezse "XP cezası" veya "Onay bekliyor" uyarısı. 
+
+HATA 1
+Önceki sürümlerdeki useNativeDriver gibi animasyon hatalarının kökten çözümü.
+
+CLAN MANTIGI
+
+Agent, uygulamaya profesyonel bir Klan (Guild) ve Periyodik Boss Savaşı sistemi ekle. Bu sistem şu 4 temel sütun üzerine kurulmalı:
+1.	Klan Yapısı: Kullanıcılar maksimum 5 kişilik gruplar kurabilsin. Klan içinde D&D rollerine göre (Tank, Hasar, Şifacı, Destek) bir dengelenme algoritması oluştur. Her klanın ortak bir 'Klan Seviyesi' ve 'Klan Kasası' (Gym Coin biriktirilen yer) olsun.
+2.	Dinamik Boss Mekaniği: Her ayın sonunda ortaya çıkan bir 'Dünya Bossu' oluştur. Boss'un devasa bir can barı (HP) olsun. Bu can barı, klan üyelerinin o ay boyunca tamamladığı antrenmanların zorluk derecesine göre düşsün.
+3.	Rol Bazlı Hasar Sistemi: > - Tank (Barbarian/Fighter): Antrenman yaptıkça klanın aldığı hasarı azaltan kalkan oluşturur.
+o	Hasar (Rogue/Wizard): Yaptığı set başına Boss'un canından en çok puanı düşürür.
+o	Şifacı (Cleric/Paladin): Antrenman tamamladıkça klan üyelerinin 'Yorgunluk' (Stamina) barını yeniler.
+4.	Lig ve Sıralama: Boss savaşı sonunda en çok hasar vuran ilk 100 klanı 'Efsanevi Lig'e (LoL tarzı) yükselt. Bu klanlara özel 'Klan Sancağı' ve 'Nadir İtem' ödülleri dağıt.
+5.	Hile Korumalı Onay: Boss'a vurulan hasarlar, Apple Health/Google Fit verileriyle doğrulanmadan sisteme işlenmesin."
+MARKET VE DİNAMİK GÖRÜNÜM
+Ustam, bu komut projenin "para basan" motoru olacak. Arkadaşına söyle, Replit Agent’a bu komutu tek seferde versin ki hem marketin kasası (ekonomi) hem de vitrini (avatarın değişimi) birbirine bağlı şekilde kurulsun.
+İşte Replit Agent için hazırladığım "Market + Dinamik Avatar" birleşik komutu:
+________________________________________
+Replit Agent'a Verilecek "Ekonomi ve Görünüm" Komutu
+"Agent, uygulamaya birbirine entegre çalışan bir Market Sistemi ve Dinamik Avatar Katmanlama Sistemi ekle. Teknik detaylar şu şekilde olmalı:
+1. Para Birimi ve Veritabanı:
+•	Kullanıcı profilinde gym_coin (oyun içi) ve gem (premium) birimlerini tanımla.
+•	inventory tablosu oluştur ve her item için is_equipped (kuşanıldı mı) durumu ekle.
+2. Katmanlı Avatar Görüntüleme (Visuals):
+•	Avatarı tek bir resim olarak değil, üst üste binen SVG katmanları (Layers) olarak kurgula:
+1.	Base_Body (Vücut), 2. Armor_Torso (Zırh), 3. Helmet (Kask), 4. Weapon (Silah), 5. Aura (Efekt).
+•	Kullanıcı bir item kuşandığında, ana ekrandaki ilgili katmanın görsel ID'sini anlık olarak güncelle.
+3. Market Arayüzü:
+•	Market ekranında 'Kozmetik', 'Güçlendirici' ve 'Premium' kategorileri oluştur.
+•	Her item için bir 'Önizleme' (Preview) butonu ekle; kullanıcı almadan önce item'ın kendi avatarı üzerinde nasıl durduğunu görsün.
+4. Satın Alma ve Kuşanma Mantığı:
+•	Satın alma tetiklendiğinde bakiyeyi kontrol et, item'ı inventoryye ekle.
+•	Envanter ekranında 'Kuşan' (Equip) butonuna basıldığında, veritabanındaki active_visuals objesini güncelle ve ana ekrandaki karakterin görüntüsünü yeniden yüklemeden (re-render) değiştir.
+•	Nadir (Legendary) itemlar için karakterin etrafında dönen veya parlayan basit bir CSS animasyonu (Aura) ekle."
+Marketing ve item
+"Agent, uygulamaya detaylı bir Profil ve Envanter (Inventory) sistemi ekle. Sistemin çalışma mantığı şöyle olsun:
+1.	Item Temin Kanalları: Item'lar veritabanında 'Alınabilir' (Market), 'Düşürülebilir' (Boss/Görev) ve 'Sadece Elmas' (Premium) olarak etiketlensin.
+2.	Envanter Görünümü: Kullanıcının sahip olduğu tüm eşyalar ızgara (grid) yapısında görünsün. Eşyaların üzerine tıklandığında 'Güç (STR)', 'Hız (DEX)' ve 'Dayanıklılık (CON)' bonusları yazılsın.
+3.	Kuşanma (Equip) Mekaniği: Kullanıcı bir zırhı kuşandığında, bu item envanterde 'Kuşanıldı' olarak işaretlensin ve karakterin ana statlarına otomatik eklensin.
+4.	Para Birimi Entegrasyonu: Market ekranında ürünlerin fiyatı 'Gym-Coin' veya 'Elmas (Gem)' olarak gösterilsin. Satın alma sonrası item otomatik envantere düşsün.
+5.	Nadir Seviyeleri: Eşyalar renklerle ayrılsın: Gri (Sıradan), Yeşil (Nadir), Mavi (Epik), Turuncu (Efsanevi)."
+

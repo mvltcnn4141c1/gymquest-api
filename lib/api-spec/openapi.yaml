@@ -1,0 +1,408 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: GymQuest MMORPG Fitness API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: character
+    description: Character management
+  - name: workouts
+    description: Workout logging
+  - name: leaderboard
+    description: Leaderboard rankings
+  - name: quests
+    description: Quest system
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /character:
+    get:
+      operationId: getCharacter
+      tags: [character]
+      summary: Get character profile
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Character profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Character"
+    post:
+      operationId: createCharacter
+      tags: [character]
+      summary: Create or update character
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCharacterInput"
+      responses:
+        "200":
+          description: Character created/updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Character"
+
+  /workouts:
+    get:
+      operationId: getWorkouts
+      tags: [workouts]
+      summary: Get workout history
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Workout history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workout"
+    post:
+      operationId: logWorkout
+      tags: [workouts]
+      summary: Log a workout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogWorkoutInput"
+      responses:
+        "200":
+          description: Workout logged with XP reward
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutResult"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get leaderboard rankings
+      parameters:
+        - name: region
+          in: query
+          schema:
+            type: string
+            default: global
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /quests:
+    get:
+      operationId: getQuests
+      tags: [quests]
+      summary: Get active quests for user
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Active quests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Quest"
+
+  /quests/{questId}/complete:
+    post:
+      operationId: completeQuest
+      tags: [quests]
+      summary: Complete a quest
+      parameters:
+        - name: questId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+              required: [userId]
+      responses:
+        "200":
+          description: Quest completed with rewards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestReward"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    Character:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        class:
+          type: string
+          enum: [warrior, mage, archer, paladin]
+        level:
+          type: integer
+        exp:
+          type: integer
+        expToNextLevel:
+          type: integer
+        totalExp:
+          type: integer
+        region:
+          type: string
+        strength:
+          type: integer
+        agility:
+          type: integer
+        endurance:
+          type: integer
+        totalWorkouts:
+          type: integer
+        totalXpEarned:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - name
+        - class
+        - level
+        - exp
+        - expToNextLevel
+        - totalExp
+        - region
+        - strength
+        - agility
+        - endurance
+        - totalWorkouts
+        - totalXpEarned
+        - createdAt
+        - updatedAt
+
+    CreateCharacterInput:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        class:
+          type: string
+          enum: [warrior, mage, archer, paladin]
+        region:
+          type: string
+      required: [userId, name, class, region]
+
+    Workout:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        exerciseType:
+          type: string
+        exerciseName:
+          type: string
+        sets:
+          type: integer
+        reps:
+          type: integer
+        duration:
+          type: integer
+        weight:
+          type: number
+        xpEarned:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - exerciseType
+        - exerciseName
+        - sets
+        - reps
+        - duration
+        - xpEarned
+        - createdAt
+
+    LogWorkoutInput:
+      type: object
+      properties:
+        userId:
+          type: string
+        exerciseType:
+          type: string
+        exerciseName:
+          type: string
+        sets:
+          type: integer
+        reps:
+          type: integer
+        duration:
+          type: integer
+        weight:
+          type: number
+      required: [userId, exerciseType, exerciseName, sets, reps, duration]
+
+    WorkoutResult:
+      type: object
+      properties:
+        workout:
+          $ref: "#/components/schemas/Workout"
+        xpEarned:
+          type: integer
+        character:
+          $ref: "#/components/schemas/Character"
+        leveledUp:
+          type: boolean
+        newLevel:
+          type: integer
+      required: [workout, xpEarned, character, leveledUp]
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: string
+        characterName:
+          type: string
+        characterClass:
+          type: string
+        level:
+          type: integer
+        totalExp:
+          type: integer
+        region:
+          type: string
+        totalWorkouts:
+          type: integer
+      required:
+        - rank
+        - userId
+        - characterName
+        - characterClass
+        - level
+        - totalExp
+        - region
+        - totalWorkouts
+
+    Quest:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [daily, weekly, special]
+        exerciseType:
+          type: string
+        targetReps:
+          type: integer
+        currentProgress:
+          type: integer
+        xpReward:
+          type: integer
+        isCompleted:
+          type: boolean
+        expiresAt:
+          type: string
+      required:
+        - id
+        - title
+        - description
+        - type
+        - exerciseType
+        - targetReps
+        - currentProgress
+        - xpReward
+        - isCompleted
+        - expiresAt
+
+    QuestReward:
+      type: object
+      properties:
+        quest:
+          $ref: "#/components/schemas/Quest"
+        xpEarned:
+          type: integer
+        character:
+          $ref: "#/components/schemas/Character"
+      required: [quest, xpEarned, character]

@@ -1,0 +1,44 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health.js";
+import characterRouter from "./character.js";
+import workoutsRouter from "./workouts.js";
+import leaderboardRouter from "./leaderboard.js";
+import questsRouter from "./quests.js";
+import dailyQuestsRouter from "./daily-quests.js";
+import storeRouter from "./store.js";
+import partyRouter from "./party.js";
+import bossEventsRouter from "./boss-events.js";
+import achievementsRouter from "./achievements.js";
+import battlePassRouter from "./battle-pass.js";
+import economyRouter from "./economy.js";
+import shopRouter from "./shop.js";
+import paymentRouter from "./payment.js";
+import retentionRouter from "./retention.js";
+import referralRouter from "./referral.js";
+import friendsRouter from "./friends.js";
+import notificationsRouter from "./notifications.js";
+import analyticsRouter from "./analytics.js";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(characterRouter);
+router.use(workoutsRouter);
+router.use(leaderboardRouter);
+router.use(questsRouter);
+router.use(dailyQuestsRouter);
+router.use(storeRouter);
+router.use(partyRouter);
+router.use(bossEventsRouter);
+router.use(achievementsRouter);
+router.use(battlePassRouter);
+router.use(economyRouter);
+router.use(shopRouter);
+router.use(paymentRouter);
+router.use(retentionRouter);
+router.use(referralRouter);
+router.use(friendsRouter);
+router.use(notificationsRouter);
+router.use(analyticsRouter);
+
+export default router;

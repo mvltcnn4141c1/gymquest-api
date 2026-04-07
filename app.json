@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "615f3e2f-63b4-487a-bbd5-2730480d0b05"
+      }
+    },
+    "android": {
+      "package": "com.gymq.workspace"
+    }
+  }
+}

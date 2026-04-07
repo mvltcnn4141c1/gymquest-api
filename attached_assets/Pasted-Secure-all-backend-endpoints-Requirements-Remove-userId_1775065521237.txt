@@ -1,0 +1,188 @@
+Secure all backend endpoints.
+
+Requirements:
+- Remove userId from client input (req.body, req.query)
+- Use authenticated user instead (req.user.id)
+
+- Add middleware:
+  authenticateUser()
+
+- Apply to:
+  /store
+  /store/purchase
+  /store/equip-aura
+  /store/dev-topup
+
+Goal:
+Prevent users from acting on behalf of others.
+
+Rebalance store economy and prevent XP abuse.
+
+Requirements:
+- Increase boost prices (2x–4x)
+- Add cooldown between boost purchases
+- Add daily purchase limit per user
+
+- Prevent stacking:
+  Only 1 active boost allowed per user
+  New boost replaces old one OR reject purchase
+
+Goal:
+Maintain long-term progression balance.
+Wrap purchase logic in a database transaction.
+
+Requirements:
+- Use db.transaction()
+
+Include:
+- purchase insert
+- currency deduction
+- boost creation
+
+If any step fails:
+- rollback everything
+
+Goal:
+Ensure atomic and safe purchases.
+
+Secure or remove development endpoints.
+
+Requirements:
+- Disable /store/dev-topup in production
+- OR restrict to admin users only
+
+Goal:
+Prevent unlimited currency exploits
+
+Prevent duplicate item purchases.
+
+Requirements:
+- Add database unique constraint:
+  (userId, itemId)
+
+- Handle conflict properly:
+  return error if already owned
+
+Goal:
+Avoid race conditions and duplicate ownership
+
+}
+Refactor exercise data model.
+
+Requirements:
+
+1. Replace:
+  equipment: string
+With:
+  equipment: Equipment[]
+
+2. Add:
+  movement: "push" | "pull" | "squat" | "hinge" | "core" | "cardio"
+  force: "compound" | "isolation"
+  plane: "horizontal" | "vertical"
+
+3. Ensure all exercises include these fields
+
+Goal:
+Enable smart workout generation and filtering
+
+}
+Improve XP calculation system.
+
+Requirements:
+- Replace linear scaling with sqrt-based scaling
+
+New formula:
+xp = ex.xpPerUnit * sets * sqrt(reps) * difficultyMultiplier
+
+Difficulty multipliers:
+başlangıç → 1.0
+orta → 1.2
+ileri → 1.5
+
+Goal:
+Prevent repetition farming and reward intensity
+
+}
+Improve calorie calculation accuracy.
+
+Requirements:
+- Add:
+  tempoSec?: number
+
+- Replace fixed rep time with:
+  (ex.tempoSec || 3)
+
+Goal:
+More realistic calorie estimation
+
+}
+Integrate RPG class system into exercises.
+
+Requirements:
+- Add:
+  classAffinity?: ("tank" | "dps" | "healer")[]
+
+- Assign each exercise to at least one class
+
+Goal:
+Connect gameplay with workout system
+
+}
+Create a workout generator function.
+
+Function:
+generateWorkout(userProfile)
+
+Requirements:
+- Use:
+  user level
+  class type
+  available equipment
+  movement balance
+
+- Avoid duplicate movement patterns
+- Output structured workout (sets, reps, exercises)
+
+Goal:
+Turn exercise database into an intelligent training system
+
+}
+Improve store system.
+
+Requirements:
+- Add item categories:
+  cosmetic | boost | functional
+
+- Add rarity system:
+  common | rare | epic | legendary
+
+- Add optional passive bonuses to aura items (small % only)
+
+Goal:
+Improve monetization and item value
+
+"}
+Improve component preview system.
+
+Requirements:
+- Remove unsafe fallback in component resolver
+- Improve type safety (no unknown)
+- Add SSR safety (check window)
+
+- Add mock data support:
+  /preview/avatar?level=10&class=tank
+
+Goal:
+Enable realistic UI testin
+
+"}
+Prepare system for scaling.
+
+Requirements:
+- Move large datasets (exercises, store) to backend or lazy load
+- Optimize queries
+- Avoid large in-memory arrays
+
+Goal:
+Ensure app performs well at scal

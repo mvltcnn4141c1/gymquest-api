@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "LXglWKqZqTMdGm7ariU7M"
+uri = "file://artifacts/gymquest/assets/images/icon.png"
+type = "image"
+title = "GymQuest app icon"
+
+[[generated]]
+id = "mXIxSBOIfWnJO_Ses-QQ4"
+uri = "file://artifacts/gymquest/assets/images/splash-icon.png"
+type = "image"
+title = "GymQuest splash screen"

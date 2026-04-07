@@ -1,0 +1,1 @@
+export const API_URL = "https://elidia-unrash-mesmerizedly.ngrok-free.dev";
