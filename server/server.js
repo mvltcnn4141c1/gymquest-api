@@ -67,13 +67,23 @@ app.get("/reset", async (req, res) => {
 });
 
 /* 👤 CREATE USER */
-app.post("/create-user", async (req, res) => {
+app.get("/create-user", async (req, res) => {
   try {
     const newUser = new User({
       username: "Yusuf",
       tasks: [
-        { title: "Spor yap" },
-        { title: "Kitap oku" },
+        {
+          title: "Spor yap",
+          progress: 0,
+          total: 10,
+          completed: false,
+        },
+        {
+          title: "Kitap oku",
+          progress: 0,
+          total: 10,
+          completed: false,
+        },
       ],
     });
 
