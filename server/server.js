@@ -231,7 +231,38 @@ app.post("/progress-task", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get("/create-user", async (req, res) => {
+  try {
+    const newUser = new User({
+      xp: 0,
+      seviye: 1,
+      görevler: [
+        {
+          title: "Şınav",
+          progress: 0,
+          total: 10,
+        },
+        {
+          title: "Kitap oku",
+          progress: 0,
+          total: 20,
+        },
+      ],
+    });
 
+    await newUser.save();
+
+    res.json({
+      _id: newUser._id,
+      xp: newUser.xp,
+      level: newUser.seviye,
+      tasks: newUser.görevler,
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "User oluşturulamadı" });
+  }
+});
 app.listen(PORT, () => {
   console.log("Server çalıştı 🚀");
 });
