@@ -73,8 +73,7 @@ app.get("/create-user", async (req, res) => {
 /* 📋 TASKS */
 app.get("/tasks", async (req, res) => {
   try {
-    const user = await User.findOne();
-
+const user = await User.findOne().sort({ _id: -1 });
     if (!user) return res.json([]);
 
     res.json(user.tasks);
