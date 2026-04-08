@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema({
     default: null,
   },
 
+  // ✅ DOĞRU TASK SCHEMA
   tasks: [
     {
       title: String,
@@ -59,7 +60,7 @@ app.get("/", (req, res) => {
   res.send("API çalışıyor 🚀");
 });
 
-/* 🧹 RESET (🔥 ÇOK ÖNEMLİ) */
+/* 🧹 RESET */
 app.get("/reset", async (req, res) => {
   await User.deleteMany({});
   res.send("Database temizlendi 🧹");
@@ -116,8 +117,13 @@ app.post("/progress-task", async (req, res) => {
       return res.json({ message: "Zaten tamamlandı" });
     }
 
-    // 🔥 PROGRESS
+    // 🔥 DEBUG
+    console.log("OLD PROGRESS:", task.progress);
+
+    // 🔥 PROGRESS ARTIR
     task.progress += 1;
+
+    console.log("NEW PROGRESS:", task.progress);
 
     let leveledUp = false;
 
