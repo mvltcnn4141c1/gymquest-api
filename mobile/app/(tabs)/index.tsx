@@ -1,50 +1,49 @@
 import { useEffect, useState } from "react";
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+
 export default function HomeScreen() {
-
-  const API_URL = "https://gymquest-api.onrender.com"; // ✅ BURADA
-
-  console.log("API:", API_URL); // ✅ BURAYA KOY
+  const API_URL = "https://gymquest-api.onrender.com";
 
   const [tasks, setTasks] = useState<any[]>([]);
   const [player, setPlayer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  // Kullanıcıyı oluştur / çek
- const createUser = async () => {
-  try {
-    const res = await fetch(`${API_URL}/create-user`, {
-      method: "POST",
-    });
 
-    const data = await res.json();
+  // USER OLUŞTUR
+  const createUser = async () => {
+    try {
+      const res = await fetch(`${API_URL}/create-user`, {
+      });
 
-    console.log("USER:", data); // ✅ BURAYA
+      const data = await res.json();
+      console.log("USER:", data);
 
-    setPlayer(data);
-  } catch (err) {
-    console.log("USER ERROR:", err);
-  }
-};
+      return data; // 🔥 ÖNEMLİ
+    } catch (err) {
+      console.log("USER ERROR:", err);
+      return null;
+    }
+  };
 
-  // Görevleri çek
+  // TASK GETİR
   const getTasks = async () => {
-  try {
-    const res = await fetch(`${API_URL}/tasks`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`${API_URL}/tasks`);
+      const data = await res.json();
 
-    console.log("TASKS:", data); // ✅ BURAYA
+      console.log("TASKS:", data);
 
-    if (Array.isArray(data)) {
-      setTasks(data);
-    } else {
+      if (Array.isArray(data)) {
+        setTasks(data);
+      } else {
+        setTasks([]);
+      }
+    } catch (err) {
+      console.log("TASK ERROR:", err);
       setTasks([]);
     }
-  } catch (err) {
-    console.log("TASK ERROR:", err);
-    setTasks([]);
-  }
-};
-  // Görev ilerlet
+  };
+
+  // TASK İLERLET
   const progressTask = async (taskId: string) => {
     try {
       const res = await fetch(`${API_URL}/progress-task`, {
@@ -60,37 +59,48 @@ export default function HomeScreen() {
 
       const data = await res.json();
 
-      // player güncelle
+      console.log("PROGRESS:", data);
+
+      // PLAYER GÜNCELLE
       setPlayer(data.player);
 
-      // task güncelle (UI refresh)
-      setTasks((prev) =>
-        prev.map((t) =>
-          t._id === taskId ? { ...t, progress: data.task.progress } : t
-        )
-      );
+      // TASK GÜNCELLE
+      if (!data.task) {
+  console.log("TASK BULUNAMADI:", data);
+  return;
+}
+
+setTasks((prev) =>
+  prev.map((t) =>
+    t._id === taskId ? { ...t, progress: data.task.progress } : t
+  )
+);
     } catch (err) {
       console.log("PROGRESS ERROR:", err);
     }
   };
 
-  // ilk yükleme
+  // İLK YÜKLEME
   useEffect(() => {
-  const init = async () => {
-    try {
-      await createUser();
-      await getTasks();
-    } catch (err) {
-      console.log("INIT ERROR:", err);
-    } finally {
-      setLoading(false); // HER DURUMDA ÇALIŞIR
-    }
-  };
+    const init = async () => {
+      try {
+        console.log("INIT BAŞLADI");
 
-  init();
-}, []);
+        const user = await createUser(); // 🔥 BURASI KRİTİK
+        if (user) setPlayer(user);
 
-  // loading ekranı
+        await getTasks();
+      } catch (err) {
+        console.log("INIT ERROR:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, []);
+
+  // LOADING
   if (loading || !player) {
     return (
       <View style={styles.center}>
@@ -102,11 +112,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* PLAYER INFO */}
+      {/* PLAYER */}
       <Text style={styles.title}>Level: {player.level}</Text>
       <Text>XP: {player.xp}</Text>
 
-      {/* TASK LIST */}
+      {/* TASKS */}
       {tasks.length === 0 ? (
         <Text>Görev yok</Text>
       ) : (
