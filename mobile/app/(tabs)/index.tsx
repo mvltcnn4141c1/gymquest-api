@@ -7,24 +7,30 @@ export default function HomeScreen() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [player, setPlayer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showLevelUp, setShowLevelUp] = useState(false);
 
-  // USER OLUŞTUR
+  // 🔥 XP HESAP
+  const neededXP = player?.level * 100;
+  const xpPercent = player && neededXP ? (player.xp / neededXP) * 100 : 0;
+
+  // 👤 USER OLUŞTUR
   const createUser = async () => {
     try {
       const res = await fetch(`${API_URL}/create-user`, {
+        method: "POST",
       });
 
       const data = await res.json();
       console.log("USER:", data);
 
-      return data; // 🔥 ÖNEMLİ
+      return data;
     } catch (err) {
       console.log("USER ERROR:", err);
       return null;
     }
   };
 
-  // TASK GETİR
+  // 📋 TASK GETİR
   const getTasks = async () => {
     try {
       const res = await fetch(`${API_URL}/tasks`);
@@ -43,9 +49,11 @@ export default function HomeScreen() {
     }
   };
 
-  // TASK İLERLET
+  // 📈 TASK İLERLET
   const progressTask = async (taskId: string) => {
     try {
+      if (!player?._id) return;
+
       const res = await fetch(`${API_URL}/progress-task`, {
         method: "POST",
         headers: {
@@ -58,35 +66,41 @@ export default function HomeScreen() {
       });
 
       const data = await res.json();
-
       console.log("PROGRESS:", data);
 
       // PLAYER GÜNCELLE
-      setPlayer(data.player);
+      if (data.player) {
+        setPlayer(data.player);
+      }
+
+      // 🔥 LEVEL UP KONTROL
+      if (data.leveledUp) {
+        setShowLevelUp(true);
+
+        setTimeout(() => {
+          setShowLevelUp(false);
+        }, 2000);
+      }
 
       // TASK GÜNCELLE
-      if (!data.task) {
-  console.log("TASK BULUNAMADI:", data);
-  return;
-}
+      if (data.task) {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t._id === taskId ? data.task : t
+          )
+        );
+      }
 
-setTasks((prev) =>
-  prev.map((t) =>
-    t._id === taskId ? { ...t, progress: data.task.progress } : t
-  )
-);
     } catch (err) {
       console.log("PROGRESS ERROR:", err);
     }
   };
 
-  // İLK YÜKLEME
+  // 🚀 İLK YÜKLEME
   useEffect(() => {
     const init = async () => {
       try {
-        console.log("INIT BAŞLADI");
-
-        const user = await createUser(); // 🔥 BURASI KRİTİK
+        const user = await createUser();
         if (user) setPlayer(user);
 
         await getTasks();
@@ -100,7 +114,7 @@ setTasks((prev) =>
     init();
   }, []);
 
-  // LOADING
+  // ⏳ LOADING
   if (loading || !player) {
     return (
       <View style={styles.center}>
@@ -112,19 +126,41 @@ setTasks((prev) =>
 
   return (
     <View style={styles.container}>
-      {/* PLAYER */}
-      <Text style={styles.title}>Level: {player.level}</Text>
-      <Text>XP: {player.xp}</Text>
 
-      {/* TASKS */}
-      {tasks.length === 0 ? (
+      {/* 🎉 LEVEL UP */}
+      {showLevelUp && (
+        <View style={styles.levelUpBox}>
+          <Text style={styles.levelUpText}>🎉 LEVEL UP!</Text>
+        </View>
+      )}
+
+      {/* 👤 PLAYER */}
+      <Text style={styles.title}>Level: {player.level}</Text>
+
+      {/* 🔥 XP BAR */}
+      <View style={styles.xpBarBackground}>
+        <View
+          style={[
+            styles.xpBarFill,
+            { width: `${xpPercent}%` },
+          ]}
+        />
+      </View>
+
+      <Text>
+        {player.xp} / {neededXP} XP
+      </Text>
+
+      {/* 📋 TASKS */}
+      {tasks?.length === 0 ? (
         <Text>Görev yok</Text>
       ) : (
         tasks.map((task) => (
           <View key={task._id} style={styles.taskBox}>
             <Text style={styles.taskTitle}>{task.title}</Text>
+
             <Text>
-              {task.progress} / {task.total}
+              {task?.progress ?? 0} / {task?.total ?? 10}
             </Text>
 
             <Pressable
@@ -140,6 +176,7 @@ setTasks((prev) =>
   );
 }
 
+// 🎨 STYLE
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -155,6 +192,36 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
   },
+
+  // 🔥 XP BAR
+  xpBarBackground: {
+    width: "100%",
+    height: 20,
+    backgroundColor: "#ddd",
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  xpBarFill: {
+    height: "100%",
+    backgroundColor: "green",
+    borderRadius: 10,
+  },
+
+  // 🎉 LEVEL UP
+  levelUpBox: {
+    position: "absolute",
+    top: 100,
+    alignSelf: "center",
+    backgroundColor: "gold",
+    padding: 20,
+    borderRadius: 15,
+    zIndex: 999,
+  },
+  levelUpText: {
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+
   taskBox: {
     padding: 15,
     marginTop: 15,
