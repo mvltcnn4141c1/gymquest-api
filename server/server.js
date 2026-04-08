@@ -27,17 +27,9 @@ const userSchema = new mongoose.Schema({
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
 
-  // 🔥 STREAK
-  streak: {
-    type: Number,
-    default: 0,
-  },
-  lastActiveDate: {
-    type: Date,
-    default: null,
-  },
+  streak: { type: Number, default: 0 },
+  lastActiveDate: { type: Date, default: null },
 
-  // ✅ DOĞRU TASK SCHEMA
   tasks: [
     {
       title: String,
@@ -69,26 +61,18 @@ app.get("/reset", async (req, res) => {
 /* 👤 CREATE USER */
 app.get("/create-user", async (req, res) => {
   try {
+    const existing = await User.findOne();
+    if (existing) return res.json(existing);
+
     const newUser = new User({
       username: "Yusuf",
       tasks: [
-        {
-          title: "Spor yap",
-          progress: 0,
-          total: 10,
-          completed: false,
-        },
-        {
-          title: "Kitap oku",
-          progress: 0,
-          total: 10,
-          completed: false,
-        },
+        { title: "Spor yap" },
+        { title: "Kitap oku" },
       ],
     });
 
     await newUser.save();
-
     res.json(newUser);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -99,7 +83,10 @@ app.get("/create-user", async (req, res) => {
 app.get("/tasks", async (req, res) => {
   try {
     const user = await User.findOne().sort({ _id: -1 });
-    if (!user) return res.json([]);
+
+    if (!user) {
+      return res.json([]); // boş dön ama hata verme
+    }
 
     res.json(user.tasks);
   } catch (err) {
@@ -127,17 +114,10 @@ app.post("/progress-task", async (req, res) => {
       return res.json({ message: "Zaten tamamlandı" });
     }
 
-    // 🔥 DEBUG
-    console.log("OLD PROGRESS:", task.progress);
-
-    // 🔥 PROGRESS ARTIR
     task.progress += 1;
-
-    console.log("NEW PROGRESS:", task.progress);
 
     let leveledUp = false;
 
-    // 🎯 TASK COMPLETE
     if (task.progress >= task.total) {
       task.progress = task.total;
       task.completed = true;
@@ -153,24 +133,21 @@ app.post("/progress-task", async (req, res) => {
       }
     }
 
-    // 🔥 STREAK SYSTEM
+    // 🔥 STREAK
     const today = new Date();
     const lastDate = user.lastActiveDate
       ? new Date(user.lastActiveDate)
       : null;
 
-    const diffTime = lastDate ? today - lastDate : null;
-    const diffDays = diffTime
-      ? Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    const diffDays = lastDate
+      ? Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
       : null;
 
     if (!lastDate) {
       user.streak = 1;
-    } else if (diffDays === 0) {
-      // aynı gün → değişmez
     } else if (diffDays === 1) {
       user.streak += 1;
-    } else {
+    } else if (diffDays > 1) {
       user.streak = 1;
     }
 
@@ -180,7 +157,7 @@ app.post("/progress-task", async (req, res) => {
 
     res.json({
       player: user,
-      task: task,
+      task,
       leveledUp,
       streak: user.streak,
     });
@@ -192,6 +169,7 @@ app.post("/progress-task", async (req, res) => {
 
 /* 🚀 SERVER */
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log("Server çalıştı 🚀");
 });
