@@ -9,11 +9,11 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
-  // 🔥 XP HESAP
+  // 🔥 XP hesap
   const neededXP = player?.level * 100;
   const xpPercent = player && neededXP ? (player.xp / neededXP) * 100 : 0;
 
-  // 👤 USER OLUŞTUR
+  // 👤 USER oluştur
   const createUser = async () => {
     try {
       const res = await fetch(`${API_URL}/create-user`, {
@@ -22,7 +22,6 @@ export default function HomeScreen() {
 
       const data = await res.json();
       console.log("USER:", data);
-
       return data;
     } catch (err) {
       console.log("USER ERROR:", err);
@@ -30,7 +29,7 @@ export default function HomeScreen() {
     }
   };
 
-  // 📋 TASK GETİR
+  // 📋 TASK getir
   const getTasks = async () => {
     try {
       const res = await fetch(`${API_URL}/tasks`);
@@ -49,10 +48,10 @@ export default function HomeScreen() {
     }
   };
 
-  // 📈 TASK İLERLET
+  // 📈 TASK ilerlet (🔥 FULL FIX)
   const progressTask = async (taskId: string) => {
     try {
-      if (!player?._id) return;
+      if (!player?._id || !taskId) return;
 
       const res = await fetch(`${API_URL}/progress-task`, {
         method: "POST",
@@ -68,38 +67,46 @@ export default function HomeScreen() {
       const data = await res.json();
       console.log("PROGRESS:", data);
 
-      // PLAYER GÜNCELLE
+      // 🔥 PLAYER güncelle
       if (data.player) {
         setPlayer(data.player);
       }
 
-      // 🔥 LEVEL UP KONTROL
-      if (data.leveledUp) {
-        setShowLevelUp(true);
-
-        setTimeout(() => {
-          setShowLevelUp(false);
-        }, 2000);
-      }
-
-      // TASK GÜNCELLE
+      // 🔥 TASK ANINDA GÜNCELLE (EN KRİTİK)
       if (data.task) {
         setTasks((prev) =>
           prev.map((t) =>
-            t._id === taskId ? data.task : t
+            t._id === taskId
+              ? {
+                  ...t,
+                  progress: data.task.progress,
+                  completed: data.task.completed,
+                }
+              : t
           )
         );
       }
+
+      // 🎉 LEVEL UP
+      if (data.leveledUp) {
+        setShowLevelUp(true);
+        setTimeout(() => setShowLevelUp(false), 2000);
+      }
+
+      // 🔥 garanti için tekrar çek (optional ama iyi)
+      await getTasks();
 
     } catch (err) {
       console.log("PROGRESS ERROR:", err);
     }
   };
 
-  // 🚀 İLK YÜKLEME
+  // 🚀 ilk yükleme
   useEffect(() => {
     const init = async () => {
       try {
+        console.log("INIT BAŞLADI");
+
         const user = await createUser();
         if (user) setPlayer(user);
 
@@ -114,7 +121,7 @@ export default function HomeScreen() {
     init();
   }, []);
 
-  // ⏳ LOADING
+  // ⏳ loading
   if (loading || !player) {
     return (
       <View style={styles.center}>
@@ -152,20 +159,26 @@ export default function HomeScreen() {
       </Text>
 
       {/* 📋 TASKS */}
-      {tasks?.length === 0 ? (
+      {tasks.length === 0 ? (
         <Text>Görev yok</Text>
       ) : (
-        tasks.map((task) => (
-          <View key={task._id} style={styles.taskBox}>
+        tasks.map((task, index) => (
+          <View key={task._id || index} style={styles.taskBox}>
             <Text style={styles.taskTitle}>{task.title}</Text>
 
             <Text>
-              {task?.progress ?? 0} / {task?.total ?? 10}
+              {(task.progress ?? 0)} / {(task.total ?? 10)}
             </Text>
 
             <Pressable
               style={styles.button}
-              onPress={() => progressTask(task._id)}
+              onPress={() => {
+                if (!task._id) {
+                  console.log("TASK ID YOK", task);
+                  return;
+                }
+                progressTask(task._id);
+              }}
             >
               <Text style={styles.buttonText}>Yap (+)</Text>
             </Pressable>
@@ -193,7 +206,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  // 🔥 XP BAR
   xpBarBackground: {
     width: "100%",
     height: 20,
@@ -207,7 +219,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
-  // 🎉 LEVEL UP
   levelUpBox: {
     position: "absolute",
     top: 100,
