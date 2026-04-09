@@ -5,30 +5,19 @@ const mongoose = require("mongoose");
 console.log("SERVER BAŞLADI 🔥");
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-/* 🔥 MongoDB */
-if (!process.env.MONGO_URI) {
-  console.log("❌ MONGO_URI YOK");
-  process.exit(1);
-}
-
-mongoose
-  .connect(process.env.MONGO_URI)
+/* 🔥 Mongo */
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB bağlandı 🚀"))
-  .catch((err) => {
-    console.log("Mongo hata:", err);
-    process.exit(1);
-  });
+  .catch(err => console.log(err));
 
 /* 👤 SCHEMA */
 const userSchema = new mongoose.Schema({
   username: String,
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
-
   tasks: [
     {
       title: String,
@@ -46,31 +35,10 @@ app.get("/", (req, res) => {
   res.send("API çalışıyor 🚀");
 });
 
-/* RESET (EKLEDİM 🔥) */
-app.get("/reset", async (req, res) => {
-  try {
-    await User.deleteMany({});
-    res.send("Database temizlendi 🧹");
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 /* USER */
 app.get("/create-user", async (req, res) => {
   try {
     let user = await User.findOne();
-    if (user.xp >= neededXP) {
-  user.level += 1;
-  user.xp = 0;
-  leveledUp = true;
-
-  // 🔥 TASK RESET
-  user.tasks.forEach(t => {
-    t.progress = 0;
-    t.completed = false;
-  });
-}
 
     if (!user) {
       user = new User({
@@ -80,11 +48,11 @@ app.get("/create-user", async (req, res) => {
           { title: "Kitap oku" },
         ],
       });
-
       await user.save();
     }
 
     res.json(user);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -92,12 +60,8 @@ app.get("/create-user", async (req, res) => {
 
 /* TASKS */
 app.get("/tasks", async (req, res) => {
-  try {
-    const user = await User.findOne();
-    res.json(user ? user.tasks : []);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const user = await User.findOne();
+  res.json(user ? user.tasks : []);
 });
 
 /* 🔥 PROGRESS */
@@ -124,7 +88,7 @@ app.post("/progress-task", async (req, res) => {
 
         user.xp += 50;
 
-        // ✅ BURADA TANIMLI
+        // ✅ SADECE BURADA TANIMLI
         const neededXP = user.level * 100;
 
         if (user.xp >= neededXP) {
@@ -132,7 +96,7 @@ app.post("/progress-task", async (req, res) => {
           user.xp = 0;
           leveledUp = true;
 
-          // 🔥 TASK RESET
+          // 🔥 RESET
           user.tasks.forEach(t => {
             t.progress = 0;
             t.completed = false;
@@ -150,13 +114,13 @@ app.post("/progress-task", async (req, res) => {
     });
 
   } catch (err) {
-    console.log("PROGRESS ERROR:", err);
+    console.log("ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 /* SERVER */
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log("Server çalıştı 🚀");
   console.log("PORT:", PORT);
