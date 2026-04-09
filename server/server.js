@@ -88,6 +88,17 @@ app.post("/progress-task", async (req, res) => {
         task.completed = true;
 
         user.xp += 50;
+        
+// 🔥 RESET (BURAYA KOY)
+app.get("/reset", async (req, res) => {
+  try {
+    await User.deleteMany({});
+    res.send("Database temizlendi 🧹");
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+        
 
         // ✅ SADECE BURADA TANIMLI
         const neededXP = user.level * 100;
@@ -97,15 +108,7 @@ app.post("/progress-task", async (req, res) => {
           user.xp = 0;
           leveledUp = true;
 
-          // 🔥 RESET
-            app.get("/reset", async (req, res) => {
-            try {
-            await User.deleteMany({});
-            res.send("Database temizlendi 🧹");
-            } catch (err) {
-             res.status(500).json({ error: err.message });
-        }
-        });
+      
         }
       }
     }
