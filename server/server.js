@@ -17,13 +17,24 @@ const userSchema = new mongoose.Schema({
   level: { type: Number, default: 1 },
   coins: { type: Number, default: 0 },
 
-  // 🔥 BOOST
   xpBoost: { type: Boolean, default: false },
 
   lastDailyReset: { type: Date, default: Date.now },
 
   streak: { type: Number, default: 0 },
   lastActiveDate: { type: Date, default: null },
+
+  // 🔥 QUESTS
+  quests: [
+    {
+      title: String,
+      goal: Number,
+      progress: { type: Number, default: 0 },
+      completed: { type: Boolean, default: false },
+      rewardXP: Number,
+      rewardCoin: Number,
+    },
+  ],
 
   tasks: [
     {
@@ -37,7 +48,25 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
-/* DAILY */
+/* QUEST OLUŞTUR */
+const generateQuests = () => {
+  return [
+    {
+      title: "3 görev yap",
+      goal: 3,
+      rewardXP: 50,
+      rewardCoin: 20,
+    },
+    {
+      title: "10 ilerleme yap",
+      goal: 10,
+      rewardXP: 80,
+      rewardCoin: 30,
+    },
+  ];
+};
+
+/* DAILY RESET */
 const checkDailyReset = (user) => {
   const now = new Date();
   const last = new Date(user.lastDailyReset);
@@ -47,6 +76,8 @@ const checkDailyReset = (user) => {
       t.progress = 0;
       t.completed = false;
     });
+
+    user.quests = generateQuests(); // 🔥 yeni görevler
     user.lastDailyReset = now;
   }
 };
@@ -88,6 +119,7 @@ app.get("/create-user", async (req, res) => {
         { title: "Spor yap" },
         { title: "Kitap oku" },
       ],
+      quests: generateQuests(),
     });
   }
 
@@ -109,22 +141,10 @@ app.get("/tasks", async (req, res) => {
   res.json(user?.tasks || []);
 });
 
-/* 🔥 SHOP BUY */
-app.post("/buy-xp-boost", async (req, res) => {
-  const { userId } = req.body;
-
-  const user = await User.findById(userId);
-
-  if (user.coins < 50) {
-    return res.json({ error: "Coin yetersiz" });
-  }
-
-  user.coins -= 50;
-  user.xpBoost = true;
-
-  await user.save();
-
-  res.json({ player: user });
+/* QUESTS */
+app.get("/quests", async (req, res) => {
+  const user = await User.findOne();
+  res.json(user?.quests || []);
 });
 
 /* PROGRESS */
@@ -132,17 +152,26 @@ app.post("/progress-task", async (req, res) => {
   const { userId, taskId } = req.body;
 
   const user = await User.findById(userId);
-  if (!user) return res.status(404).json({ error: "User yok" });
 
   checkDailyReset(user);
   updateStreak(user);
 
   const task = user.tasks.id(taskId);
 
-  let leveledUp = false;
-
   if (!task.completed) {
     task.progress += 1;
+
+    // 🔥 QUEST PROGRESS
+    user.quests.forEach(q => {
+      if (!q.completed) {
+        q.progress += 1;
+        if (q.progress >= q.goal) {
+          q.completed = true;
+          user.xp += q.rewardXP;
+          user.coins += q.rewardCoin;
+        }
+      }
+    });
 
     if (task.progress >= task.total) {
       task.completed = true;
@@ -150,24 +179,10 @@ app.post("/progress-task", async (req, res) => {
       let xpGain = 50;
       let coinGain = 10;
 
-      // 🔥 BOOST
-      if (user.xpBoost) {
-        xpGain *= 1.5;
-      }
-
-      if (user.streak >= 3) {
-        xpGain += 20;
-        coinGain += 5;
-      }
+      if (user.xpBoost) xpGain *= 1.5;
 
       user.xp += xpGain;
       user.coins += coinGain;
-
-      if (user.xp >= user.level * 100) {
-        user.level += 1;
-        user.xp = 0;
-        leveledUp = true;
-      }
     }
   }
 
@@ -176,11 +191,8 @@ app.post("/progress-task", async (req, res) => {
   res.json({
     player: user,
     task,
-    leveledUp,
+    quests: user.quests,
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Server çalıştı 🚀");
-});
+app.listen(3000, () => console.log("Server çalıştı 🚀"));
