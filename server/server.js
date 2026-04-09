@@ -107,10 +107,6 @@ app.post("/progress-task", async (req, res) => {
 
     const { userId, taskId } = req.body;
 
-    if (!userId || !taskId) {
-      return res.status(400).json({ error: "Eksik veri" });
-    }
-
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User yok" });
 
@@ -126,14 +122,21 @@ app.post("/progress-task", async (req, res) => {
         task.progress = task.total;
         task.completed = true;
 
-        // XP
         user.xp += 50;
 
-        // 🔥 LEVEL SYSTEM (FIXED)
-        while (user.xp >= user.level * 100) {
-          user.xp -= user.level * 100;
+        // ✅ BURADA TANIMLI
+        const neededXP = user.level * 100;
+
+        if (user.xp >= neededXP) {
           user.level += 1;
+          user.xp = 0;
           leveledUp = true;
+
+          // 🔥 TASK RESET
+          user.tasks.forEach(t => {
+            t.progress = 0;
+            t.completed = false;
+          });
         }
       }
     }
@@ -145,12 +148,12 @@ app.post("/progress-task", async (req, res) => {
       task,
       leveledUp,
     });
+
   } catch (err) {
     console.log("PROGRESS ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
 /* SERVER */
 const PORT = process.env.PORT || 3000;
 
