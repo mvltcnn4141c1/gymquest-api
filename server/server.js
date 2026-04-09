@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
-
 console.log("SERVER BAŞLADI 🔥");
 
 const app = express();
@@ -34,6 +33,16 @@ const User = mongoose.model("User", userSchema);
 /* TEST */
 app.get("/", (req, res) => {
   res.send("API çalışıyor 🚀");
+});
+
+/* 🔥 RESET (DOĞRU YER) */
+app.get("/reset", async (req, res) => {
+  try {
+    await User.deleteMany({});
+    res.send("Database temizlendi 🧹");
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* USER */
@@ -88,27 +97,13 @@ app.post("/progress-task", async (req, res) => {
         task.completed = true;
 
         user.xp += 50;
-        
-// 🔥 RESET (BURAYA KOY)
-app.get("/reset", async (req, res) => {
-  try {
-    await User.deleteMany({});
-    res.send("Database temizlendi 🧹");
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-        
 
-        // ✅ SADECE BURADA TANIMLI
         const neededXP = user.level * 100;
 
         if (user.xp >= neededXP) {
           user.level += 1;
           user.xp = 0;
           leveledUp = true;
-
-      
         }
       }
     }
