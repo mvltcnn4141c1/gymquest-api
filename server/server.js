@@ -98,18 +98,14 @@ app.post("/progress-task", async (req, res) => {
           leveledUp = true;
 
           // 🔥 RESET
-app.get("/reset", async (req, res) => {
-  try {
-    await User.deleteMany({});
-    res.send("Database temizlendi 🧹");
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-          user.tasks.forEach(t => {
-            t.progress = 0;
-            t.completed = false;
-          });
+            app.get("/reset", async (req, res) => {
+            try {
+            await User.deleteMany({});
+            res.send("Database temizlendi 🧹");
+            } catch (err) {
+             res.status(500).json({ error: err.message });
+        }
+        });
         }
       }
     }
