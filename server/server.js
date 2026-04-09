@@ -73,10 +73,22 @@ app.post("/progress-task", async (req, res) => {
   if (!task.completed) {
     task.progress += 1;
 
-    if (task.progress >= task.total) {
-      task.completed = true;
-      user.xp += 50;
-    }
+    if (task.progress >= task.total && !task.completed) {
+  task.progress = task.total;
+  task.completed = true;
+
+  user.xp += 50;
+  // 💥 LEVEL KONTROLÜ (HER ZAMAN ÇALIŞSIN)
+const neededXP = user.level * 100;
+
+let leveledUp = false;
+
+if (user.xp >= neededXP) {
+  user.level += 1;
+  user.xp = 0;
+  leveledUp = true;
+}
+}
   }
 
   await user.save();
