@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
   username: String,
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
+  lastDailyReset: { type: Date, default: Date.now }, // ✅ DOĞRU YER
   tasks: [
     {
       title: String,
@@ -30,12 +31,32 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
+/* 🔥 DAILY RESET */
+const checkDailyReset = (user) => {
+  const now = new Date();
+  const last = new Date(user.lastDailyReset);
+
+  const isDifferentDay =
+    now.getDate() !== last.getDate() ||
+    now.getMonth() !== last.getMonth() ||
+    now.getFullYear() !== last.getFullYear();
+
+  if (isDifferentDay) {
+    user.tasks.forEach((task) => {
+      task.progress = 0;
+      task.completed = false;
+    });
+
+    user.lastDailyReset = now;
+  }
+};
+
 /* TEST */
 app.get("/", (req, res) => {
   res.send("API çalışıyor 🚀");
 });
 
-/* 🔥 RESET (DOĞRU YER) */
+/* 🔥 RESET */
 app.get("/reset", async (req, res) => {
   try {
     await User.deleteMany({});
@@ -58,8 +79,11 @@ app.get("/create-user", async (req, res) => {
           { title: "Kitap oku" },
         ],
       });
-      await user.save();
     }
+
+    // ✅ BURADA KONTROL
+    checkDailyReset(user);
+    await user.save();
 
     res.json(user);
 
@@ -71,6 +95,12 @@ app.get("/create-user", async (req, res) => {
 /* TASKS */
 app.get("/tasks", async (req, res) => {
   const user = await User.findOne();
+
+  if (user) {
+    checkDailyReset(user);
+    await user.save();
+  }
+
   res.json(user ? user.tasks : []);
 });
 
@@ -83,6 +113,9 @@ app.post("/progress-task", async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User yok" });
+
+    // ✅ HER ZAMAN RESET KONTROLÜ
+    checkDailyReset(user);
 
     const task = user.tasks.id(taskId);
     if (!task) return res.status(404).json({ error: "Task yok" });
