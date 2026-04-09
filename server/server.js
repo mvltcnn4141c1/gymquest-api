@@ -60,6 +60,17 @@ app.get("/reset", async (req, res) => {
 app.get("/create-user", async (req, res) => {
   try {
     let user = await User.findOne();
+    if (user.xp >= neededXP) {
+  user.level += 1;
+  user.xp = 0;
+  leveledUp = true;
+
+  // 🔥 TASK RESET
+  user.tasks.forEach(t => {
+    t.progress = 0;
+    t.completed = false;
+  });
+}
 
     if (!user) {
       user = new User({
