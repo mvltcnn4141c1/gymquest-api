@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  ActivityIndicator,
+  StyleSheet,
+  Animated,
+} from "react-native";
 
 export default function HomeScreen() {
   const API_URL = "https://gymquest-api.onrender.com";
@@ -9,158 +16,127 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
-  const neededXP = player?.level * 100;
-  const xpPercent = player && neededXP ? (player.xp / neededXP) * 100 : 0;
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // 👤 USER oluştur
+  const neededXP = player?.level * 100 || 100;
+  const xpPercent = player ? (player.xp / neededXP) * 100 : 0;
+
+  // 🔥 USER
   const createUser = async () => {
-    try {
-      const res = await fetch(`${API_URL}/create-user`);
-      const data = await res.json();
-
-      console.log("USER:", data);
-      return data;
-    } catch (err) {
-      console.log("USER ERROR:", err);
-      return null;
-    }
+    const res = await fetch(`${API_URL}/create-user`);
+    const data = await res.json();
+    setPlayer(data);
   };
 
-  // 📋 TASK getir
+  // 📋 TASKS
   const getTasks = async () => {
-    try {
-      const res = await fetch(`${API_URL}/tasks`);
-      const data = await res.json();
-
-      console.log("TASKS:", data);
-
-      if (Array.isArray(data)) {
-        setTasks(data);
-      } else {
-        setTasks([]);
-      }
-    } catch (err) {
-      console.log("TASK ERROR:", err);
-      setTasks([]);
-    }
+    const res = await fetch(`${API_URL}/tasks`);
+    const data = await res.json();
+    setTasks(data);
   };
 
-  // 🔥 FIXED PROGRESS
+  // 🚀 PROGRESS
   const progressTask = async (taskId: string) => {
-    try {
-      if (!taskId) return;
+    if (!player) return;
 
+    try {
       const res = await fetch(`${API_URL}/progress-task`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    userId: player._id,
-    taskId: taskId,
-  }),
-});
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: player._id,
+          taskId,
+        }),
+      });
 
       const data = await res.json();
-      console.log("PROGRESS:", data);
 
-      // player güncelle
       if (data.player) {
         setPlayer(data.player);
       }
 
-      // task update
-      if (data.task) {
-        setTasks((prev) =>
-          prev.map((t) =>
-            t._id === taskId
-              ? {
-                  ...t,
-                  progress: data.task.progress,
-                  completed: data.task.completed,
-                }
-              : t
-          )
-        );
-      }
-
-      // level up
       if (data.leveledUp) {
         setShowLevelUp(true);
         setTimeout(() => setShowLevelUp(false), 2000);
       }
 
-      await getTasks();
+      getTasks();
     } catch (err) {
-      console.log("PROGRESS ERROR:", err);
+      console.log(err);
     }
   };
 
+  // 🔄 INIT
   useEffect(() => {
     const init = async () => {
-      try {
-        console.log("INIT BAŞLADI");
-
-        const user = await createUser();
-        if (user) setPlayer(user);
-
-        await getTasks();
-      } catch (err) {
-        console.log("INIT ERROR:", err);
-      } finally {
-        setLoading(false);
-      }
+      await createUser();
+      await getTasks();
+      setLoading(false);
     };
-
     init();
   }, []);
+
+  // 🎯 XP ANİMASYON
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: xpPercent,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [xpPercent]);
 
   if (loading || !player) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
-        <Text>Yükleniyor...</Text>
       </View>
     );
   }
 
+  const widthInterpolate = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ["0%", "100%"],
+  });
+
   return (
     <View style={styles.container}>
-      {showLevelUp && (
-        <View style={styles.levelUpBox}>
-          <Text style={styles.levelUpText}>🎉 LEVEL UP!</Text>
-        </View>
-      )}
+      <Text style={styles.level}>Level: {player.level}</Text>
 
-      <Text style={styles.title}>Level: {player.level}</Text>
-
-      <View style={styles.xpBarBackground}>
-        <View style={[styles.xpBarFill, { width: `${xpPercent}%` }]} />
+      {/* XP BAR */}
+      <View style={styles.bar}>
+        <Animated.View
+          style={[styles.fill, { width: widthInterpolate }]}
+        />
       </View>
-
-      <Text>
+      <Text style={styles.xp}>
         {player.xp} / {neededXP} XP
       </Text>
 
-      {tasks.length === 0 ? (
-        <Text>Görev yok</Text>
-      ) : (
-        tasks.map((task, index) => (
-          <View key={task._id || index} style={styles.taskBox}>
-            <Text style={styles.taskTitle}>{task.title}</Text>
+      {/* TASKS */}
+      {tasks.map((task) => (
+        <View key={task._id} style={styles.card}>
+          <Text style={styles.title}>
+            {task.title} ({task.progress}/{task.total})
+          </Text>
 
-            <Text>
-              {(task.progress ?? 0)} / {(task.total ?? 10)}
-            </Text>
+          <Pressable
+            style={styles.button}
+            onPress={() => progressTask(task._id)}
+          >
+            <Text style={styles.buttonText}>Yap (+)</Text>
+          </Pressable>
+        </View>
+      ))}
 
-            <Pressable
-              style={styles.button}
-              onPress={() => progressTask(task._id)}
-            >
-              <Text style={styles.buttonText}>Yap (+)</Text>
-            </Pressable>
-          </View>
-        ))
+      {/* LEVEL UP */}
+      {showLevelUp && (
+        <View style={styles.levelUp}>
+          <Text style={styles.levelUpText}>
+            🎉 LEVEL UP! {player.level}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -170,60 +146,56 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    marginTop: 40,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  title: {
+  level: {
     fontSize: 22,
     fontWeight: "bold",
   },
-  xpBarBackground: {
-    width: "100%",
+  xp: {
+    marginBottom: 20,
+  },
+  bar: {
     height: 20,
     backgroundColor: "#ddd",
     borderRadius: 10,
-    marginTop: 10,
+    overflow: "hidden",
+    marginVertical: 10,
   },
-  xpBarFill: {
+  fill: {
     height: "100%",
     backgroundColor: "green",
-    borderRadius: 10,
   },
-  levelUpBox: {
-    position: "absolute",
-    top: 100,
-    alignSelf: "center",
-    backgroundColor: "gold",
-    padding: 20,
-    borderRadius: 15,
-    zIndex: 999,
+  card: {
+    marginBottom: 20,
   },
-  levelUpText: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  taskBox: {
-    padding: 15,
-    marginTop: 15,
-    backgroundColor: "#eee",
-    borderRadius: 10,
-  },
-  taskTitle: {
+  title: {
     fontSize: 16,
-    fontWeight: "bold",
+    marginBottom: 5,
   },
   button: {
-    marginTop: 10,
     backgroundColor: "black",
-    padding: 10,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 10,
   },
   buttonText: {
     color: "white",
     textAlign: "center",
+  },
+  levelUp: {
+    position: "absolute",
+    top: "40%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  levelUpText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "green",
   },
 });
