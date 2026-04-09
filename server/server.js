@@ -2,13 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
-console.log("SERVER BAŞLADI 🔥");
-
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* 🔥 Mongo */
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB bağlandı 🚀"))
   .catch(err => console.log(err));
@@ -19,6 +16,9 @@ const userSchema = new mongoose.Schema({
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
   coins: { type: Number, default: 0 },
+
+  // 🔥 BOOST
+  xpBoost: { type: Boolean, default: false },
 
   lastDailyReset: { type: Date, default: Date.now },
 
@@ -37,36 +37,28 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
-/* 🔥 DAILY RESET */
+/* DAILY */
 const checkDailyReset = (user) => {
   const now = new Date();
   const last = new Date(user.lastDailyReset);
 
-  const isDifferentDay =
-    now.getDate() !== last.getDate() ||
-    now.getMonth() !== last.getMonth() ||
-    now.getFullYear() !== last.getFullYear();
-
-  if (isDifferentDay) {
-    user.tasks.forEach((task) => {
-      task.progress = 0;
-      task.completed = false;
+  if (now.toDateString() !== last.toDateString()) {
+    user.tasks.forEach(t => {
+      t.progress = 0;
+      t.completed = false;
     });
-
     user.lastDailyReset = now;
   }
 };
 
-/* 🔥 STREAK */
+/* STREAK */
 const updateStreak = (user) => {
   const today = new Date();
   const last = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
 
-  if (!last) {
-    user.streak = 1;
-  } else {
+  if (!last) user.streak = 1;
+  else {
     const diff = Math.floor((today - last) / (1000 * 60 * 60 * 24));
-
     if (diff === 1) user.streak += 1;
     else if (diff > 1) user.streak = 1;
   }
@@ -74,7 +66,7 @@ const updateStreak = (user) => {
   user.lastActiveDate = today;
 };
 
-/* TEST */
+/* ROOT */
 app.get("/", (req, res) => {
   res.send("API çalışıyor 🚀");
 });
@@ -82,7 +74,7 @@ app.get("/", (req, res) => {
 /* RESET */
 app.get("/reset", async (req, res) => {
   await User.deleteMany({});
-  res.send("Database temizlendi 🧹");
+  res.send("reset ok");
 });
 
 /* USER */
@@ -114,69 +106,80 @@ app.get("/tasks", async (req, res) => {
     await user.save();
   }
 
-  res.json(user ? user.tasks : []);
+  res.json(user?.tasks || []);
 });
 
-/* 🔥 PROGRESS */
+/* 🔥 SHOP BUY */
+app.post("/buy-xp-boost", async (req, res) => {
+  const { userId } = req.body;
+
+  const user = await User.findById(userId);
+
+  if (user.coins < 50) {
+    return res.json({ error: "Coin yetersiz" });
+  }
+
+  user.coins -= 50;
+  user.xpBoost = true;
+
+  await user.save();
+
+  res.json({ player: user });
+});
+
+/* PROGRESS */
 app.post("/progress-task", async (req, res) => {
-  try {
-    const { userId, taskId } = req.body;
+  const { userId, taskId } = req.body;
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User yok" });
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ error: "User yok" });
 
-    checkDailyReset(user);
-    updateStreak(user);
+  checkDailyReset(user);
+  updateStreak(user);
 
-    const task = user.tasks.id(taskId);
-    if (!task) return res.status(404).json({ error: "Task yok" });
+  const task = user.tasks.id(taskId);
 
-    let leveledUp = false;
+  let leveledUp = false;
 
-    if (!task.completed) {
-      task.progress += 1;
+  if (!task.completed) {
+    task.progress += 1;
 
-      if (task.progress >= task.total) {
-        task.progress = task.total;
-        task.completed = true;
+    if (task.progress >= task.total) {
+      task.completed = true;
 
-        let xpGain = 50;
-        let coinGain = 10;
+      let xpGain = 50;
+      let coinGain = 10;
 
-        if (user.streak >= 3) {
-          xpGain += 20;
-          coinGain += 5;
-        }
+      // 🔥 BOOST
+      if (user.xpBoost) {
+        xpGain *= 1.5;
+      }
 
-        user.xp += xpGain;
-        user.coins += coinGain;
+      if (user.streak >= 3) {
+        xpGain += 20;
+        coinGain += 5;
+      }
 
-        const neededXP = user.level * 100;
+      user.xp += xpGain;
+      user.coins += coinGain;
 
-        if (user.xp >= neededXP) {
-          user.level += 1;
-          user.xp = 0;
-          leveledUp = true;
-        }
+      if (user.xp >= user.level * 100) {
+        user.level += 1;
+        user.xp = 0;
+        leveledUp = true;
       }
     }
-
-    await user.save();
-
-    res.json({
-      player: user,
-      task,
-      leveledUp,
-      streak: user.streak,
-      coins: user.coins,
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
+
+  await user.save();
+
+  res.json({
+    player: user,
+    task,
+    leveledUp,
+  });
 });
 
-/* SERVER */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server çalıştı 🚀");
