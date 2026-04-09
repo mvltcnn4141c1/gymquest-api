@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+
 console.log("SERVER BAŞLADI 🔥");
 
 const app = express();
@@ -97,6 +98,14 @@ app.post("/progress-task", async (req, res) => {
           leveledUp = true;
 
           // 🔥 RESET
+app.get("/reset", async (req, res) => {
+  try {
+    await User.deleteMany({});
+    res.send("Database temizlendi 🧹");
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
           user.tasks.forEach(t => {
             t.progress = 0;
             t.completed = false;
