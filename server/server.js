@@ -18,7 +18,14 @@ const userSchema = new mongoose.Schema({
   username: String,
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
-  lastDailyReset: { type: Date, default: Date.now }, // ✅ DOĞRU YER
+
+  // 🔥 DAILY RESET
+  lastDailyReset: { type: Date, default: Date.now },
+
+  // 🔥 STREAK
+  streak: { type: Number, default: 0 },
+  lastActiveDate: { type: Date, default: null },
+
   tasks: [
     {
       title: String,
@@ -51,12 +58,35 @@ const checkDailyReset = (user) => {
   }
 };
 
+/* 🔥 STREAK SYSTEM */
+const updateStreak = (user) => {
+  const today = new Date();
+  const last = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
+
+  if (!last) {
+    user.streak = 1;
+  } else {
+    const diffDays = Math.floor(
+      (today - last) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffDays === 1) {
+      user.streak += 1; // 🔥 devam ediyor
+    } else if (diffDays > 1) {
+      user.streak = 1; // ❌ kırıldı
+    }
+    // same day → değişmez
+  }
+
+  user.lastActiveDate = today;
+};
+
 /* TEST */
 app.get("/", (req, res) => {
   res.send("API çalışıyor 🚀");
 });
 
-/* 🔥 RESET */
+/* RESET */
 app.get("/reset", async (req, res) => {
   try {
     await User.deleteMany({});
@@ -81,7 +111,6 @@ app.get("/create-user", async (req, res) => {
       });
     }
 
-    // ✅ BURADA KONTROL
     checkDailyReset(user);
     await user.save();
 
@@ -114,8 +143,9 @@ app.post("/progress-task", async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User yok" });
 
-    // ✅ HER ZAMAN RESET KONTROLÜ
+    // 🔥 DAILY + STREAK
     checkDailyReset(user);
+    updateStreak(user);
 
     const task = user.tasks.id(taskId);
     if (!task) return res.status(404).json({ error: "Task yok" });
@@ -129,7 +159,15 @@ app.post("/progress-task", async (req, res) => {
         task.progress = task.total;
         task.completed = true;
 
-        user.xp += 50;
+        // 🔥 BASE XP
+        let xpGain = 50;
+
+        // 🔥 STREAK BONUS
+        if (user.streak >= 3) {
+          xpGain += 20;
+        }
+
+        user.xp += xpGain;
 
         const neededXP = user.level * 100;
 
@@ -147,6 +185,7 @@ app.post("/progress-task", async (req, res) => {
       player: user,
       task,
       leveledUp,
+      streak: user.streak,
     });
 
   } catch (err) {
