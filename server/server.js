@@ -24,7 +24,6 @@ const userSchema = new mongoose.Schema({
   streak: { type: Number, default: 0 },
   lastActiveDate: { type: Date, default: null },
 
-  // 🔥 QUESTS
   quests: [
     {
       title: String,
@@ -48,36 +47,21 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
-/* QUEST OLUŞTUR */
-const generateQuests = () => {
-  return [
-    {
-      title: "3 görev yap",
-      goal: 3,
-      rewardXP: 50,
-      rewardCoin: 20,
-    },
-    {
-      title: "10 ilerleme yap",
-      goal: 10,
-      rewardXP: 80,
-      rewardCoin: 30,
-    },
-  ];
-};
+/* QUEST */
+const generateQuests = () => [
+  { title: "3 görev yap", goal: 3, rewardXP: 50, rewardCoin: 20 },
+  { title: "10 ilerleme yap", goal: 10, rewardXP: 80, rewardCoin: 30 },
+];
 
-/* DAILY RESET */
+/* DAILY */
 const checkDailyReset = (user) => {
   const now = new Date();
-  const last = new Date(user.lastDailyReset);
-
-  if (now.toDateString() !== last.toDateString()) {
+  if (now.toDateString() !== new Date(user.lastDailyReset).toDateString()) {
     user.tasks.forEach(t => {
       t.progress = 0;
       t.completed = false;
     });
-
-    user.quests = generateQuests(); // 🔥 yeni görevler
+    user.quests = generateQuests();
     user.lastDailyReset = now;
   }
 };
@@ -90,7 +74,7 @@ const updateStreak = (user) => {
   if (!last) user.streak = 1;
   else {
     const diff = Math.floor((today - last) / (1000 * 60 * 60 * 24));
-    if (diff === 1) user.streak += 1;
+    if (diff === 1) user.streak++;
     else if (diff > 1) user.streak = 1;
   }
 
@@ -98,9 +82,7 @@ const updateStreak = (user) => {
 };
 
 /* ROOT */
-app.get("/", (req, res) => {
-  res.send("API çalışıyor 🚀");
-});
+app.get("/", (req, res) => res.send("API çalışıyor 🚀"));
 
 /* RESET */
 app.get("/reset", async (req, res) => {
@@ -132,12 +114,10 @@ app.get("/create-user", async (req, res) => {
 /* TASKS */
 app.get("/tasks", async (req, res) => {
   const user = await User.findOne();
-
   if (user) {
     checkDailyReset(user);
     await user.save();
   }
-
   res.json(user?.tasks || []);
 });
 
@@ -145,6 +125,15 @@ app.get("/tasks", async (req, res) => {
 app.get("/quests", async (req, res) => {
   const user = await User.findOne();
   res.json(user?.quests || []);
+});
+
+/* 🏆 LEADERBOARD */
+app.get("/leaderboard", async (req, res) => {
+  const users = await User.find()
+    .sort({ level: -1, xp: -1 })
+    .limit(10);
+
+  res.json(users);
 });
 
 /* PROGRESS */
@@ -159,12 +148,11 @@ app.post("/progress-task", async (req, res) => {
   const task = user.tasks.id(taskId);
 
   if (!task.completed) {
-    task.progress += 1;
+    task.progress++;
 
-    // 🔥 QUEST PROGRESS
     user.quests.forEach(q => {
       if (!q.completed) {
-        q.progress += 1;
+        q.progress++;
         if (q.progress >= q.goal) {
           q.completed = true;
           user.xp += q.rewardXP;
@@ -183,16 +171,17 @@ app.post("/progress-task", async (req, res) => {
 
       user.xp += xpGain;
       user.coins += coinGain;
+
+      if (user.xp >= user.level * 100) {
+        user.level++;
+        user.xp = 0;
+      }
     }
   }
 
   await user.save();
 
-  res.json({
-    player: user,
-    task,
-    quests: user.quests,
-  });
+  res.json({ player: user });
 });
 
 app.listen(3000, () => console.log("Server çalıştı 🚀"));
