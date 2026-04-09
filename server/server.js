@@ -84,9 +84,7 @@ app.get("/tasks", async (req, res) => {
   try {
     const user = await User.findOne().sort({ _id: -1 });
 
-    if (!user) {
-      return res.json([]); // boş dön ama hata verme
-    }
+    if (!user) return res.json([]);
 
     res.json(user.tasks);
   } catch (err) {
@@ -94,10 +92,16 @@ app.get("/tasks", async (req, res) => {
   }
 });
 
-/* 📈 TASK PROGRESS */
+/* 📈 TASK PROGRESS (FIXED + DEBUG) */
 app.post("/progress-task", async (req, res) => {
   try {
     const { userId, taskId } = req.body;
+
+    console.log("GELEN:", userId, taskId);
+
+    if (!userId || !taskId) {
+      return res.status(400).json({ error: "Eksik veri" });
+    }
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User yok" });
@@ -163,6 +167,7 @@ app.post("/progress-task", async (req, res) => {
     });
 
   } catch (err) {
+    console.log("HATA:", err);
     res.status(500).json({ error: err.message });
   }
 });
