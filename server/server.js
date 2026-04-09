@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+
 console.log("SERVER BAŞLADI 🔥");
 
 const app = express();
@@ -9,15 +10,25 @@ app.use(cors());
 app.use(express.json());
 
 /* 🔥 MongoDB */
-mongoose.connect(process.env.MONGO_URI)
+if (!process.env.MONGO_URI) {
+  console.log("❌ MONGO_URI YOK");
+  process.exit(1);
+}
+
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB bağlandı 🚀"))
-  .catch((err) => console.log(err));
+  .catch((err) => {
+    console.log("Mongo hata:", err);
+    process.exit(1);
+  });
 
 /* 👤 SCHEMA */
 const userSchema = new mongoose.Schema({
   username: String,
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
+
   tasks: [
     {
       title: String,
@@ -35,73 +46,103 @@ app.get("/", (req, res) => {
   res.send("API çalışıyor 🚀");
 });
 
+/* RESET (EKLEDİM 🔥) */
+app.get("/reset", async (req, res) => {
+  try {
+    await User.deleteMany({});
+    res.send("Database temizlendi 🧹");
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* USER */
 app.get("/create-user", async (req, res) => {
-  let user = await User.findOne();
+  try {
+    let user = await User.findOne();
 
-  if (!user) {
-    user = new User({
-      username: "Yusuf",
-      tasks: [
-        { title: "Spor yap" },
-        { title: "Kitap oku" },
-      ],
-    });
-    await user.save();
+    if (!user) {
+      user = new User({
+        username: "Yusuf",
+        tasks: [
+          { title: "Spor yap" },
+          { title: "Kitap oku" },
+        ],
+      });
+
+      await user.save();
+    }
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  res.json(user);
 });
 
 /* TASKS */
 app.get("/tasks", async (req, res) => {
-  const user = await User.findOne();
-  res.json(user ? user.tasks : []);
+  try {
+    const user = await User.findOne();
+    res.json(user ? user.tasks : []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-/* 🔥 PROGRESS (EN ÖNEMLİ) */
+/* 🔥 PROGRESS */
 app.post("/progress-task", async (req, res) => {
-  console.log("HIT PROGRESS 🚀");
+  try {
+    console.log("HIT PROGRESS 🚀");
 
-  const { userId, taskId } = req.body;
+    const { userId, taskId } = req.body;
 
-  const user = await User.findById(userId);
-  if (!user) return res.status(404).json({ error: "User yok" });
+    if (!userId || !taskId) {
+      return res.status(400).json({ error: "Eksik veri" });
+    }
 
-  const task = user.tasks.id(taskId);
-  if (!task) return res.status(404).json({ error: "Task yok" });
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User yok" });
 
-  if (!task.completed) {
-    task.progress += 1;
+    const task = user.tasks.id(taskId);
+    if (!task) return res.status(404).json({ error: "Task yok" });
 
-    if (task.progress >= task.total && !task.completed) {
-  task.progress = task.total;
-  task.completed = true;
+    let leveledUp = false;
 
-  user.xp += 50;
-  // 💥 LEVEL KONTROLÜ (HER ZAMAN ÇALIŞSIN)
-const neededXP = user.level * 100;
+    if (!task.completed) {
+      task.progress += 1;
 
-let leveledUp = false;
+      if (task.progress >= task.total) {
+        task.progress = task.total;
+        task.completed = true;
 
-if (user.xp >= neededXP) {
-  user.level += 1;
-  user.xp = 0;
-  leveledUp = true;
-}
-}
+        // XP
+        user.xp += 50;
+
+        // 🔥 LEVEL SYSTEM (FIXED)
+        while (user.xp >= user.level * 100) {
+          user.xp -= user.level * 100;
+          user.level += 1;
+          leveledUp = true;
+        }
+      }
+    }
+
+    await user.save();
+
+    res.json({
+      player: user,
+      task,
+      leveledUp,
+    });
+  } catch (err) {
+    console.log("PROGRESS ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
-
-  await user.save();
-
-  res.json({
-    player: user,
-    task,
-  });
 });
 
 /* SERVER */
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log("Server çalıştı 🚀");
   console.log("PORT:", PORT);
