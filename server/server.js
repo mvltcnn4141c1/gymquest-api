@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+console.log("SERVER BAŞLADI 🔥");
 
 const app = express();
 
@@ -101,7 +102,7 @@ if (user.xp >= neededXP) {
 
 /* SERVER */
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log("Server çalıştı 🚀");
+  console.log("PORT:", PORT);
 });
