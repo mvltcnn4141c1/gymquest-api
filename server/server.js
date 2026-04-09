@@ -8,28 +8,15 @@ app.use(cors());
 app.use(express.json());
 
 /* 🔥 MongoDB */
-if (!process.env.MONGO_URI) {
-  console.log("❌ MONGO_URI YOK");
-  process.exit(1);
-}
-
-mongoose
-  .connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB bağlandı 🚀"))
-  .catch((err) => {
-    console.log(err);
-    process.exit(1);
-  });
+  .catch((err) => console.log(err));
 
 /* 👤 SCHEMA */
 const userSchema = new mongoose.Schema({
   username: String,
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
-
-  streak: { type: Number, default: 0 },
-  lastActiveDate: { type: Date, default: null },
-
   tasks: [
     {
       title: String,
@@ -38,141 +25,69 @@ const userSchema = new mongoose.Schema({
       completed: { type: Boolean, default: false },
     },
   ],
-
-  lastDailyReset: {
-    type: Date,
-    default: Date.now,
-  },
 });
 
 const User = mongoose.model("User", userSchema);
 
-/* 🚀 TEST */
+/* TEST */
 app.get("/", (req, res) => {
   res.send("API çalışıyor 🚀");
 });
 
-/* 🧹 RESET */
-app.get("/reset", async (req, res) => {
-  await User.deleteMany({});
-  res.send("Database temizlendi 🧹");
-});
-
-/* 👤 CREATE USER */
+/* USER */
 app.get("/create-user", async (req, res) => {
-  try {
-    const existing = await User.findOne();
-    if (existing) return res.json(existing);
+  let user = await User.findOne();
 
-    const newUser = new User({
+  if (!user) {
+    user = new User({
       username: "Yusuf",
       tasks: [
         { title: "Spor yap" },
         { title: "Kitap oku" },
       ],
     });
-
-    await newUser.save();
-    res.json(newUser);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    await user.save();
   }
+
+  res.json(user);
 });
 
-/* 📋 TASKS */
+/* TASKS */
 app.get("/tasks", async (req, res) => {
-  try {
-    const user = await User.findOne().sort({ _id: -1 });
-
-    if (!user) return res.json([]);
-
-    res.json(user.tasks);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const user = await User.findOne();
+  res.json(user ? user.tasks : []);
 });
 
-/* 📈 TASK PROGRESS (FIXED + DEBUG) */
+/* 🔥 PROGRESS (EN ÖNEMLİ) */
 app.post("/progress-task", async (req, res) => {
-  try {
-    const { userId, taskId } = req.body;
+  console.log("HIT PROGRESS 🚀");
 
-    console.log("GELEN:", userId, taskId);
+  const { userId, taskId } = req.body;
 
-    if (!userId || !taskId) {
-      return res.status(400).json({ error: "Eksik veri" });
-    }
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ error: "User yok" });
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User yok" });
+  const task = user.tasks.id(taskId);
+  if (!task) return res.status(404).json({ error: "Task yok" });
 
-    const task = user.tasks.find(
-      (t) => t._id.toString() === taskId
-    );
-
-    if (!task) {
-      return res.status(404).json({ error: "Task yok" });
-    }
-
-    if (task.completed) {
-      return res.json({ message: "Zaten tamamlandı" });
-    }
-
+  if (!task.completed) {
     task.progress += 1;
 
-    let leveledUp = false;
-
     if (task.progress >= task.total) {
-      task.progress = task.total;
       task.completed = true;
-
       user.xp += 50;
-
-      const neededXP = user.level * 100;
-
-      if (user.xp >= neededXP) {
-        user.level += 1;
-        user.xp = 0;
-        leveledUp = true;
-      }
     }
-
-    // 🔥 STREAK
-    const today = new Date();
-    const lastDate = user.lastActiveDate
-      ? new Date(user.lastActiveDate)
-      : null;
-
-    const diffDays = lastDate
-      ? Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
-      : null;
-
-    if (!lastDate) {
-      user.streak = 1;
-    } else if (diffDays === 1) {
-      user.streak += 1;
-    } else if (diffDays > 1) {
-      user.streak = 1;
-    }
-
-    user.lastActiveDate = today;
-
-    await user.save();
-
-    res.json({
-      player: user,
-      task,
-      leveledUp,
-      streak: user.streak,
-    });
-
-  } catch (err) {
-    console.log("HATA:", err);
-    res.status(500).json({ error: err.message });
   }
+
+  await user.save();
+
+  res.json({
+    player: user,
+    task,
+  });
 });
 
-/* 🚀 SERVER */
+/* SERVER */
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
