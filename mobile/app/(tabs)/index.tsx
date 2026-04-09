@@ -9,18 +9,15 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
-  // 🔥 XP hesap
   const neededXP = player?.level * 100;
   const xpPercent = player && neededXP ? (player.xp / neededXP) * 100 : 0;
 
   // 👤 USER oluştur
   const createUser = async () => {
     try {
-      const res = await fetch(`${API_URL}/create-user`, {
-        method: "POST",
-      });
-
+      const res = await fetch(`${API_URL}/create-user`);
       const data = await res.json();
+
       console.log("USER:", data);
       return data;
     } catch (err) {
@@ -48,31 +45,31 @@ export default function HomeScreen() {
     }
   };
 
-  // 📈 TASK ilerlet (🔥 FULL FIX)
+  // 🔥 FIXED PROGRESS
   const progressTask = async (taskId: string) => {
     try {
-      if (!player?._id || !taskId) return;
+      if (!taskId) return;
 
       const res = await fetch(`${API_URL}/progress-task`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: player._id,
-          taskId: taskId,
-        }),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    userId: player._id,
+    taskId: taskId,
+  }),
+});
 
       const data = await res.json();
       console.log("PROGRESS:", data);
 
-      // 🔥 PLAYER güncelle
+      // player güncelle
       if (data.player) {
         setPlayer(data.player);
       }
 
-      // 🔥 TASK ANINDA GÜNCELLE (EN KRİTİK)
+      // task update
       if (data.task) {
         setTasks((prev) =>
           prev.map((t) =>
@@ -87,21 +84,18 @@ export default function HomeScreen() {
         );
       }
 
-      // 🎉 LEVEL UP
+      // level up
       if (data.leveledUp) {
         setShowLevelUp(true);
         setTimeout(() => setShowLevelUp(false), 2000);
       }
 
-      // 🔥 garanti için tekrar çek (optional ama iyi)
       await getTasks();
-
     } catch (err) {
       console.log("PROGRESS ERROR:", err);
     }
   };
 
-  // 🚀 ilk yükleme
   useEffect(() => {
     const init = async () => {
       try {
@@ -121,7 +115,6 @@ export default function HomeScreen() {
     init();
   }, []);
 
-  // ⏳ loading
   if (loading || !player) {
     return (
       <View style={styles.center}>
@@ -133,32 +126,22 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* 🎉 LEVEL UP */}
       {showLevelUp && (
         <View style={styles.levelUpBox}>
           <Text style={styles.levelUpText}>🎉 LEVEL UP!</Text>
         </View>
       )}
 
-      {/* 👤 PLAYER */}
       <Text style={styles.title}>Level: {player.level}</Text>
 
-      {/* 🔥 XP BAR */}
       <View style={styles.xpBarBackground}>
-        <View
-          style={[
-            styles.xpBarFill,
-            { width: `${xpPercent}%` },
-          ]}
-        />
+        <View style={[styles.xpBarFill, { width: `${xpPercent}%` }]} />
       </View>
 
       <Text>
         {player.xp} / {neededXP} XP
       </Text>
 
-      {/* 📋 TASKS */}
       {tasks.length === 0 ? (
         <Text>Görev yok</Text>
       ) : (
@@ -172,13 +155,7 @@ export default function HomeScreen() {
 
             <Pressable
               style={styles.button}
-              onPress={() => {
-                if (!task._id) {
-                  console.log("TASK ID YOK", task);
-                  return;
-                }
-                progressTask(task._id);
-              }}
+              onPress={() => progressTask(task._id)}
             >
               <Text style={styles.buttonText}>Yap (+)</Text>
             </Pressable>
@@ -189,7 +166,6 @@ export default function HomeScreen() {
   );
 }
 
-// 🎨 STYLE
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -205,7 +181,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
   },
-
   xpBarBackground: {
     width: "100%",
     height: 20,
@@ -218,7 +193,6 @@ const styles = StyleSheet.create({
     backgroundColor: "green",
     borderRadius: 10,
   },
-
   levelUpBox: {
     position: "absolute",
     top: 100,
@@ -232,7 +206,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
-
   taskBox: {
     padding: 15,
     marginTop: 15,
