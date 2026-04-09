@@ -18,11 +18,10 @@ const userSchema = new mongoose.Schema({
   username: String,
   xp: { type: Number, default: 0 },
   level: { type: Number, default: 1 },
+  coins: { type: Number, default: 0 },
 
-  // 🔥 DAILY RESET
   lastDailyReset: { type: Date, default: Date.now },
 
-  // 🔥 STREAK
   streak: { type: Number, default: 0 },
   lastActiveDate: { type: Date, default: null },
 
@@ -58,7 +57,7 @@ const checkDailyReset = (user) => {
   }
 };
 
-/* 🔥 STREAK SYSTEM */
+/* 🔥 STREAK */
 const updateStreak = (user) => {
   const today = new Date();
   const last = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
@@ -66,16 +65,10 @@ const updateStreak = (user) => {
   if (!last) {
     user.streak = 1;
   } else {
-    const diffDays = Math.floor(
-      (today - last) / (1000 * 60 * 60 * 24)
-    );
+    const diff = Math.floor((today - last) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 1) {
-      user.streak += 1; // 🔥 devam ediyor
-    } else if (diffDays > 1) {
-      user.streak = 1; // ❌ kırıldı
-    }
-    // same day → değişmez
+    if (diff === 1) user.streak += 1;
+    else if (diff > 1) user.streak = 1;
   }
 
   user.lastActiveDate = today;
@@ -88,37 +81,28 @@ app.get("/", (req, res) => {
 
 /* RESET */
 app.get("/reset", async (req, res) => {
-  try {
-    await User.deleteMany({});
-    res.send("Database temizlendi 🧹");
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  await User.deleteMany({});
+  res.send("Database temizlendi 🧹");
 });
 
 /* USER */
 app.get("/create-user", async (req, res) => {
-  try {
-    let user = await User.findOne();
+  let user = await User.findOne();
 
-    if (!user) {
-      user = new User({
-        username: "Yusuf",
-        tasks: [
-          { title: "Spor yap" },
-          { title: "Kitap oku" },
-        ],
-      });
-    }
-
-    checkDailyReset(user);
-    await user.save();
-
-    res.json(user);
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (!user) {
+    user = new User({
+      username: "Yusuf",
+      tasks: [
+        { title: "Spor yap" },
+        { title: "Kitap oku" },
+      ],
+    });
   }
+
+  checkDailyReset(user);
+  await user.save();
+
+  res.json(user);
 });
 
 /* TASKS */
@@ -136,14 +120,11 @@ app.get("/tasks", async (req, res) => {
 /* 🔥 PROGRESS */
 app.post("/progress-task", async (req, res) => {
   try {
-    console.log("HIT PROGRESS 🚀");
-
     const { userId, taskId } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User yok" });
 
-    // 🔥 DAILY + STREAK
     checkDailyReset(user);
     updateStreak(user);
 
@@ -159,15 +140,16 @@ app.post("/progress-task", async (req, res) => {
         task.progress = task.total;
         task.completed = true;
 
-        // 🔥 BASE XP
         let xpGain = 50;
+        let coinGain = 10;
 
-        // 🔥 STREAK BONUS
         if (user.streak >= 3) {
           xpGain += 20;
+          coinGain += 5;
         }
 
         user.xp += xpGain;
+        user.coins += coinGain;
 
         const neededXP = user.level * 100;
 
@@ -186,10 +168,10 @@ app.post("/progress-task", async (req, res) => {
       task,
       leveledUp,
       streak: user.streak,
+      coins: user.coins,
     });
 
   } catch (err) {
-    console.log("ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -198,5 +180,4 @@ app.post("/progress-task", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server çalıştı 🚀");
-  console.log("PORT:", PORT);
 });
